@@ -53,13 +53,13 @@ sudo chmod 600 /opt/https-syslog-bridge/bridgesecrets/\*
 
 Navigate to the root of the repository (where this README is) and build using the src context:
 
-docker build \-t syslog-bridge ./src
+docker build \-t https-syslog-bridge ./src
 
 ### **3\. Run the Container**
 
 Run the container, mounting the absolute path of your secrets directory to the internal /bridgesecrets path.
 
-docker run \-d \--name syslog-bridge \--restart always \-p 8443:8443 \-v /opt/https-syslog-bridge/bridgesecrets:/bridgesecrets \-e SYSLOG\_HOST=10.0.0.50 \-e SYSLOG\_PORT=514 syslog-bridge
+docker run \-d \--name https-syslog-bridge \--restart always \-p 8443:8443 \-v /opt/https-syslog-bridge/bridgesecrets:/bridgesecrets \-e SYSLOG\_HOST=10.0.0.50 \-e SYSLOG\_PORT=514 syslog-bridge
 
 ## **Configuration**
 
@@ -71,10 +71,6 @@ The following environment variables can be set in the docker run command:
 | SYSLOG\_PORT | 514 | TCP Port of the upstream Syslog server. |
 | LISTEN\_PORT | 8443 | Port the container listens on for HTTPS. |
 | LOG\_LEVEL | ERROR | Logging verbosity (DEBUG, INFO, WARNING, ERROR). |
-
-## **Usage Example**
-
-Send a log message using curl. Note that you must include the X-Secret-Key header matching the contents of your api\_key.txt.
 
 \# Get your secret (requires sudo if permissions are locked down)  
 SECRET=$(sudo cat /opt/https-syslog-bridge/bridgesecrets/api\_key.txt)
