@@ -53,7 +53,7 @@ sudo chmod 600 /opt/https-syslog-bridge/bridgesecrets/\*
 
 Navigate to the root of the repository (where this README is) and build using the src context:
 
-```sudo docker build \-t https-syslog-bridge ./src
+~~~sudo docker build \-t https-syslog-bridge ./src~~~
 
 ### **3\. Run the Container**
 
