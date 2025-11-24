@@ -10,7 +10,7 @@ It is built on a minimal Alpine Python image and uses the native Python standard
 * **Security:**  
   * TLS/SSL termination on port 8443\.  
   * Shared Secret authentication via X-Secret-Key header.  
-* **Lightweight:** Zero external Python dependencies
+* **Lightweight:** Zero external Python dependencies (pip is not even used).
 
 ## **Project Structure**
 
@@ -27,30 +27,27 @@ It is built on a minimal Alpine Python image and uses the native Python standard
 
 ## **Installation & Setup**
 
-### **1\. Prepare Secrets Volume**
+### **1\. Prepare Production Secrets**
 
-The container requires a directory containing three specific files:
+For production deployment (Debian/Linux), we recommend storing secrets in /opt inside the project folder.
 
-* server.crt (SSL Certificate)  
-* server.key (SSL Private Key)  
-* api\_key.txt (Shared secret for authentication)
+**Create the directory:**
 
-Create a local directory for these secrets:
-
-mkdir \-p bridgesecrets  
-cd bridgesecrets
+sudo mkdir \-p /opt/https-syslog-bridge/bridgesecrets  
+cd /opt/https-syslog-bridge/bridgesecrets
 
 **Generate a Shared Secret:**
 
 \# Generates a 32-character hex string  
-openssl rand \-hex 16 \> api\_key.txt
+sudo sh \-c 'openssl rand \-hex 16 \> api\_key.txt'
 
 **Generate Self-Signed Certs (if needed):**
 
-openssl req \-x509 \-newkey rsa:4096 \-nodes \\  
-  \-out server.crt \\  
-  \-keyout server.key \\  
-  \-days 3650 \-subj "/CN=syslog-bridge"
+sudo openssl req \-x509 \-newkey rsa:4096 \-nodes \-out server.crt \-keyout server.key \-days 3650 \-subj "/CN=syslog-bridge"
+
+Secure the Directory:  
+It is critical to lock down permissions so only root (or the owner) can read the private keys.  
+sudo chmod 600 /opt/https-syslog-bridge/bridgesecrets/\*
 
 ### **2\. Build the Image**
 
@@ -60,16 +57,9 @@ docker build \-t syslog-bridge ./src
 
 ### **3\. Run the Container**
 
-Run the container, mounting your bridgesecrets directory to the internal /bridgesecrets path.
+Run the container, mounting the absolute path of your secrets directory to the internal /bridgesecrets path.
 
-docker run \-d \\  
-  \--name syslog-bridge \\  
-  \--restart always \\  
-  \-p 8443:8443 \\  
-  \-v $(pwd)/bridgesecrets:/bridgesecrets \\  
-  \-e SYSLOG\_HOST=10.0.0.50 \\  
-  \-e SYSLOG\_PORT=514 \\  
-  syslog-bridge
+docker run \-d \--name syslog-bridge \--restart always \-p 8443:8443 \-v /opt/https-syslog-bridge/bridgesecrets:/bridgesecrets \-e SYSLOG\_HOST=10.0.0.50 \-e SYSLOG\_PORT=514 syslog-bridge
 
 ## **Configuration**
 
@@ -86,11 +76,8 @@ The following environment variables can be set in the docker run command:
 
 Send a log message using curl. Note that you must include the X-Secret-Key header matching the contents of your api\_key.txt.
 
-\# Get your secret  
-SECRET=$(cat bridgesecrets/api\_key.txt)
+\# Get your secret (requires sudo if permissions are locked down)  
+SECRET=$(sudo cat /opt/https-syslog-bridge/bridgesecrets/api\_key.txt)
 
 \# Send data  
-curl \-k \-v \-X POST https://localhost:8443 \\  
-  \-H "X-Secret-Key: $SECRET" \\  
-  \-H "Content-Type: text/plain" \\  
-  \--data "\<134\>1 2023-10-11T22:14:15.003Z mymachine.example.com su \- ID47 \- BOM 'su root' failed for lonvick on /dev/pts/8"
+curl \-k \-v \-X POST https://localhost:8443 \-H "X-Secret-Key: $SECRET" \-H "Content-Type: text/plain" \--data "\<134\>1 2023-10-11T22:14:15.003Z mymachine.example.com su \- ID47 \- BOM 'su root' failed for lonvick on /dev/pts/8"  
