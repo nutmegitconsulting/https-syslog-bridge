@@ -46,7 +46,7 @@ sudo sh \-c 'openssl rand \-hex 16 \> api\_key.txt'
 sudo openssl req \-x509 \-newkey rsa:4096 \-nodes \-out server.crt \-keyout server.key \-days 3650 \-subj "/CN=https-syslog-bridge"
 
 Secure the Directory:  
-It is critical to lock down permissions so only root (or the owner) can read the private keys.  
+Lock down permissions so only root (or the owner) can read the private keys.  
 sudo chmod 600 /opt/https-syslog-bridge/bridgesecrets/\*
 
 ### **2\. Build the Image**
