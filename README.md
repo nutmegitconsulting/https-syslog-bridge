@@ -33,21 +33,21 @@ For production deployment (Debian/Linux), we recommend storing secrets in /opt i
 
 **Create the directory:**
 
-sudo mkdir \-p /opt/https-syslog-bridge/bridgesecrets  
-cd /opt/https-syslog-bridge/bridgesecrets
+``sudo mkdir \-p /opt/https-syslog-bridge/bridgesecrets  
+cd /opt/https-syslog-bridge/bridgesecrets``
 
 **Generate a Shared Secret:**
 
 \# Generates a 32-character hex string  
-sudo sh \-c 'openssl rand \-hex 16 \> api\_key.txt'
+``sudo sh \-c 'openssl rand \-hex 16 \> api\_key.txt'``
 
 **Generate Self-Signed Certs (if needed):**
 
-sudo openssl req \-x509 \-newkey rsa:4096 \-nodes \-out server.crt \-keyout server.key \-days 3650 \-subj "/CN=https-syslog-bridge"
+``sudo openssl req \-x509 \-newkey rsa:4096 \-nodes \-out server.crt \-keyout server.key \-days 3650 \-subj "/CN=https-syslog-bridge"``
 
 Secure the Directory:  
 Lock down permissions so only root (or the owner) can read the private keys.  
-sudo chmod 600 /opt/https-syslog-bridge/bridgesecrets/\*
+``sudo chmod 600 /opt/https-syslog-bridge/bridgesecrets/\*``
 
 ### **2\. Build the Image**
 
@@ -59,7 +59,7 @@ Navigate to the root of the repository (where this README is) and build using th
 
 Run the container, mounting the absolute path of your secrets directory to the internal /bridgesecrets path.
 
-docker run \-d \--name https-syslog-bridge \--restart always \-p 8443:8443 \-v /opt/https-syslog-bridge/bridgesecrets:/bridgesecrets \-e SYSLOG\_HOST=10.0.0.50 \-e SYSLOG\_PORT=514 syslog-bridge
+``sudo docker run \-d \--name https-syslog-bridge \--restart always \-p 8443:8443 \-v /opt/https-syslog-bridge/bridgesecrets:/bridgesecrets \-e SYSLOG\_HOST=10.0.0.50 \-e SYSLOG\_PORT=514 syslog-bridge``
 
 ## **Configuration**
 
