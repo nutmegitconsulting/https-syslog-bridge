@@ -59,7 +59,7 @@ Navigate to the root of the repository (where this README is) and build using th
 
 Run the container, mounting the absolute path of your secrets directory to the internal /bridgesecrets path.
 
-``sudo docker run -d --name https-syslog-bridge --restart always -p 8443:8443 -v /opt/https-syslog-bridge/bridgesecrets:/bridgesecrets -e SYSLOG_HOST=10.0.0.50 -e SYSLOG_PORT=514 syslog-bridge``
+``sudo docker run -d --name https-syslog-bridge --restart always -p 8443:8443 -v /opt/https-syslog-bridge/bridgesecrets:/bridgesecrets -e SYSLOG_HOST=10.0.0.50 -e SYSLOG_PORT=514 https-syslog-bridge``
 
 ## **Configuration**
 
