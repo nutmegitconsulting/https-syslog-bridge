@@ -43,7 +43,7 @@ sudo sh \-c 'openssl rand \-hex 16 \> api\_key.txt'
 
 **Generate Self-Signed Certs (if needed):**
 
-sudo openssl req \-x509 \-newkey rsa:4096 \-nodes \-out server.crt \-keyout server.key \-days 3650 \-subj "/CN=syslog-bridge"
+sudo openssl req \-x509 \-newkey rsa:4096 \-nodes \-out server.crt \-keyout server.key \-days 3650 \-subj "/CN=https-syslog-bridge"
 
 Secure the Directory:  
 It is critical to lock down permissions so only root (or the owner) can read the private keys.  
