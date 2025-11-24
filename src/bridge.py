@@ -43,7 +43,6 @@ API_SECRET = None
 def load_secret():
     """
     Loads the authentication secret from the persistent volume at startup.
-    This prevents us from passing secrets via Environment Variables.
     """
     global API_SECRET
     try:
@@ -190,3 +189,4 @@ if __name__ == "__main__":
     except FileNotFoundError:
         logger.critical(f"Certificates not found at {CERT_FILE} or {KEY_FILE}. Cannot start.")
         exit(1)
+
