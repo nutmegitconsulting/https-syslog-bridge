@@ -20,7 +20,9 @@ import threading
 # Configuration
 SYSLOG_HOST = os.getenv('SYSLOG_HOST', 'localhost')
 SYSLOG_PORT = int(os.getenv('SYSLOG_PORT', 514))
-# Default to port 443 inside container
+DISABLE_TLS = os.getenv('DISABLE_TLS', 'false').lower() == 'true'
+
+# Default to port 8443 inside container
 LISTEN_PORT = int(os.getenv('LISTEN_PORT', 8443))
 
 # Certificate paths
@@ -179,14 +181,22 @@ if __name__ == "__main__":
     server_address = ('0.0.0.0', LISTEN_PORT)
     httpd = http.server.ThreadingHTTPServer(server_address, BridgeHandler)
 
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    try:
-        context.load_cert_chain(certfile=CERT_FILE, keyfile=KEY_FILE)
-        httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
-        
-        logger.error(f"Starting HTTPS Syslog Bridge on port {LISTEN_PORT}...")
-        httpd.serve_forever()
+    if not DISABLE_TLS:
+        # Only wrap in SSL if TLS is NOT disabled
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        try:
+            context.load_cert_chain(certfile=CERT_FILE, keyfile=KEY_FILE)
+            httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
+            logger.info(f"Starting HTTPS Syslog Bridge on port {LISTEN_PORT}...")
+        except FileNotFoundError:
+            logger.critical(f"Certificates not found. Cannot start.")
+            exit(1)
+    else:
+        logger.info(f"Starting HTTP (No TLS) Syslog Bridge on port {LISTEN_PORT}...")
+
+    httpd.serve_forever()
     except FileNotFoundError:
         logger.critical(f"Certificates not found at {CERT_FILE} or {KEY_FILE}. Cannot start.")
         exit(1)
+
 
