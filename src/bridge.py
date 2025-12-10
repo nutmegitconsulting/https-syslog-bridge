@@ -4,34 +4,25 @@ import logging
 import http.server
 import ssl
 import threading
+import sys
 
 # --------------------------------------------------------------------------------
 # SYSLOG HTTPS -> TCP BRIDGE
-# --------------------------------------------------------------------------------
-# Security Note:
-# This service requires a "Shared Secret" authentication model.
-# The sender must include the header 'X-Secret-Key' matching the content
-# of the secret file stored in the container.
-#
-# To generate a robust 32-character secret for the 'api_key.txt' file:
-#   openssl rand -hex 16 > api_key.txt
 # --------------------------------------------------------------------------------
 
 # Configuration
 SYSLOG_HOST = os.getenv('SYSLOG_HOST', 'localhost')
 SYSLOG_PORT = int(os.getenv('SYSLOG_PORT', 514))
-DISABLE_TLS = os.getenv('DISABLE_TLS', 'false').lower() == 'true'
-
-# Default to port 8443 inside container
 LISTEN_PORT = int(os.getenv('LISTEN_PORT', 8443))
 
+# New Config: Allow disabling TLS for Cloudflare Tunnel/VPC scenarios
+DISABLE_TLS = os.getenv('DISABLE_TLS', 'false').lower() == 'true'
+
 # Certificate paths
-# Now defaulting to the /bridgesecrets directory
 CERT_FILE = os.getenv('CERT_FILE', '/bridgesecrets/server.crt')
 KEY_FILE = os.getenv('KEY_FILE', '/bridgesecrets/server.key')
 
 # Auth Secret Configuration
-# We expect a text file containing ONLY the secret string
 SECRET_FILE_PATH = os.getenv('SECRET_FILE_PATH', '/bridgesecrets/api_key.txt')
 
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'ERROR')
@@ -53,17 +44,17 @@ def load_secret():
         
         if not API_SECRET:
             logger.critical(f"Security Error: Secret file at {SECRET_FILE_PATH} is empty.")
-            exit(1)
+            sys.exit(1)
             
         logger.info(f"Authentication secret loaded. Length: {len(API_SECRET)} chars.")
         
     except FileNotFoundError:
         logger.critical(f"Security Error: 'api_key.txt' not found at {SECRET_FILE_PATH}.")
         logger.critical("Please mount the 'bridgesecrets' volume to '/bridgesecrets'.")
-        exit(1)
+        sys.exit(1)
     except Exception as e:
         logger.critical(f"Error reading secret file: {e}")
-        exit(1)
+        sys.exit(1)
 
 class SyslogClient:
     """
@@ -89,7 +80,6 @@ class SyslogClient:
             self.sock = None
 
     def send(self, data):
-        # Ensure only one thread writes to the socket at a time
         with self.lock:
             if not self.sock:
                 self.connect()
@@ -182,7 +172,7 @@ if __name__ == "__main__":
     httpd = http.server.ThreadingHTTPServer(server_address, BridgeHandler)
 
     if not DISABLE_TLS:
-        # Only wrap in SSL if TLS is NOT disabled
+        # --- TLS ENABLED ---
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         try:
             context.load_cert_chain(certfile=CERT_FILE, keyfile=KEY_FILE)
@@ -190,13 +180,9 @@ if __name__ == "__main__":
             logger.info(f"Starting HTTPS Syslog Bridge on port {LISTEN_PORT}...")
         except FileNotFoundError:
             logger.critical(f"Certificates not found. Cannot start.")
-            exit(1)
+            sys.exit(1)
     else:
+        # --- TLS DISABLED ---
         logger.info(f"Starting HTTP (No TLS) Syslog Bridge on port {LISTEN_PORT}...")
 
     httpd.serve_forever()
-    except FileNotFoundError:
-        logger.critical(f"Certificates not found at {CERT_FILE} or {KEY_FILE}. Cannot start.")
-        exit(1)
-
-
