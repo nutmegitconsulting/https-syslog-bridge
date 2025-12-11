@@ -2,30 +2,22 @@ import socket
 import os
 import logging
 import http.server
-import ssl
 import threading
 import sys
 
 # --------------------------------------------------------------------------------
-# SYSLOG HTTPS -> TCP BRIDGE
+# SYSLOG HTTP -> TCP BRIDGE
 # --------------------------------------------------------------------------------
 
 # Configuration
 SYSLOG_HOST = os.getenv('SYSLOG_HOST', 'localhost')
 SYSLOG_PORT = int(os.getenv('SYSLOG_PORT', 514))
-LISTEN_PORT = int(os.getenv('LISTEN_PORT', 8443))
-
-# New Config: Allow disabling TLS for Cloudflare Tunnel/VPC scenarios
-DISABLE_TLS = os.getenv('DISABLE_TLS', 'false').lower() == 'true'
-
-# Certificate paths
-CERT_FILE = os.getenv('CERT_FILE', '/bridgesecrets/server.crt')
-KEY_FILE = os.getenv('KEY_FILE', '/bridgesecrets/server.key')
+LISTEN_PORT = int(os.getenv('LISTEN_PORT', 8080)) # Default changed to 8080
 
 # Auth Secret Configuration
 SECRET_FILE_PATH = os.getenv('SECRET_FILE_PATH', '/bridgesecrets/api_key.txt')
 
-LOG_LEVEL = os.getenv('LOG_LEVEL', 'ERROR')
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 
 logging.basicConfig(level=LOG_LEVEL, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -108,7 +100,7 @@ syslog_client = SyslogClient(SYSLOG_HOST, SYSLOG_PORT)
 
 class BridgeHandler(http.server.BaseHTTPRequestHandler):
     """
-    Handles HTTPS requests and forwards body to Syslog TCP.
+    Handles HTTP requests and forwards body to Syslog TCP.
     Enforces Authentication via X-Secret-Key header.
     """
     
@@ -171,18 +163,5 @@ if __name__ == "__main__":
     server_address = ('0.0.0.0', LISTEN_PORT)
     httpd = http.server.ThreadingHTTPServer(server_address, BridgeHandler)
 
-    if not DISABLE_TLS:
-        # --- TLS ENABLED ---
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        try:
-            context.load_cert_chain(certfile=CERT_FILE, keyfile=KEY_FILE)
-            httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
-            logger.info(f"Starting HTTPS Syslog Bridge on port {LISTEN_PORT}...")
-        except FileNotFoundError:
-            logger.critical(f"Certificates not found. Cannot start.")
-            sys.exit(1)
-    else:
-        # --- TLS DISABLED ---
-        logger.info(f"Starting HTTP (No TLS) Syslog Bridge on port {LISTEN_PORT}...")
-
+    logger.info(f"Starting HTTP Syslog Bridge on port {LISTEN_PORT}...")
     httpd.serve_forever()
